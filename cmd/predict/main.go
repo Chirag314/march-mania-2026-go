@@ -40,7 +40,7 @@ func main() {
 	_ = w.Write([]string{"ID", "Pred"})
 	for _, r := range rows {
 		x := []float64{r.DSeed, r.DElo, r.DWinPct, r.DAvgMargin, r.DAvgPF, r.DAvgPA, r.DMasseyOrd}
-		p := model.PredictProba(x)
+		p = mm.ClipProb(p, 0.02, 0.98)
 		_ = w.Write([]string{r.ID, fmt.Sprintf("%.6f", p)})
 	}
 

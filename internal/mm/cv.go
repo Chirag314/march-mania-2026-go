@@ -63,3 +63,36 @@ func SeasonGroupFolds(rows []MatchupFeatureRow, k int, seed int64) []Fold {
 	}
 	return folds
 }
+
+// Leave-One-Season-Out CV: each fold holds out exactly one Season.
+func LOSOFolds(rows []MatchupFeatureRow) []Fold {
+	seasonsSet := map[int]struct{}{}
+	for _, r := range rows {
+		if r.HasLabel {
+			seasonsSet[r.Season] = struct{}{}
+		}
+	}
+
+	seasons := make([]int, 0, len(seasonsSet))
+	for s := range seasonsSet {
+		seasons = append(seasons, s)
+	}
+	sort.Ints(seasons)
+
+	folds := make([]Fold, 0, len(seasons))
+	for _, valSeason := range seasons {
+		var trainIdx, valIdx []int
+		for i, r := range rows {
+			if !r.HasLabel {
+				continue
+			}
+			if r.Season == valSeason {
+				valIdx = append(valIdx, i)
+			} else {
+				trainIdx = append(trainIdx, i)
+			}
+		}
+		folds = append(folds, Fold{TrainIdx: trainIdx, ValIdx: valIdx, ValSeason: valSeason})
+	}
+	return folds
+}

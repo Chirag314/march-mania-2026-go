@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	var artDir, outDir string
+	var artDir, outDir, cvMode string
 	var k int
 	var seed int64
 
@@ -17,6 +17,8 @@ func main() {
 	flag.StringVar(&outDir, "out_dir", "artifacts", "output directory")
 	flag.IntVar(&k, "k", 5, "number of CV folds (season-grouped)")
 	flag.Int64Var(&seed, "seed", 42, "random seed for season assignment")
+
+	flag.StringVar(&cvMode, "cv", "loso", "cv mode: loso or groupk")
 	flag.Parse()
 
 	trainPath := filepath.Join(artDir, "features_train.csv")
@@ -29,8 +31,14 @@ func main() {
 
 	X, y := toXY(rows)
 
-	folds := mm.SeasonGroupFolds(rows, k, seed)
-	fmt.Printf("CV: %d folds (season-grouped)\n", len(folds))
+	var folds []mm.Fold
+	if cvMode == "groupk" {
+		folds = mm.SeasonGroupFolds(rows, k, seed)
+		fmt.Printf("CV: %d folds (season-grouped)\n", len(folds))
+	} else {
+		folds = mm.LOSOFolds(rows)
+		fmt.Printf("CV: %d folds (LOSO)\n", len(folds))
+	}
 
 	var foldScores []float64
 	for fi, fold := range folds {
@@ -41,12 +49,14 @@ func main() {
 
 		pred := make([]float64, len(Xva))
 		for i := range Xva {
-			pred[i] = model.PredictProba(Xva[i])
+			p := model.PredictProba(Xva[i])
+			p = mm.ClipProb(p, 0.02, 0.98)
+			pred[i] = p
 		}
 
 		score := mm.BrierScore(yva, pred)
 		foldScores = append(foldScores, score)
-		fmt.Printf("Fold %d: n_val=%d Brier=%.6f\n", fi+1, len(fold.ValIdx), score)
+		fmt.Printf("Fold %d (val_season=%d): n_val=%d Brier=%.6f\n", fi+1, fold.ValSeason, len(fold.ValIdx), score)
 	}
 
 	mean, std := mm.MeanStd(foldScores)
