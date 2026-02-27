@@ -273,8 +273,8 @@ func ReadMassey(dataDir string) ([]MasseyRow, error) {
 
 func ReadSampleSubmission(dataDir string) ([]string, error) {
 	path, err := findFile(dataDir,
-		"SampleSubmissionStage2.csv",
 		"SampleSubmissionStage1.csv",
+		"SampleSubmissionStage2.csv",
 		"MSampleSubmissionStage1.csv",
 		"MSampleSubmissionStage2.csv",
 	)
