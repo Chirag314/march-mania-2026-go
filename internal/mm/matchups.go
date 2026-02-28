@@ -144,10 +144,6 @@ func ReadMatchupsCSV(path string) ([]MatchupFeatureRow, error) {
 	}
 	col := indexMap(header)
 
-	// helper: check if a column exists
-	_, hasLabelCol := col["Label"]
-	_, hasHasLabelCol := col["HasLabel"]
-
 	var out []MatchupFeatureRow
 	for {
 		rec, err := r.Read()
@@ -174,13 +170,12 @@ func ReadMatchupsCSV(path string) ([]MatchupFeatureRow, error) {
 			HasLabel:   false,
 		}
 
-		// HasLabel is optional / may be false in test
+		// Optional columns:
 		hs := strings.ToLower(getStr(rec, col, "HasLabel"))
 		if hs == "true" {
 			row.HasLabel = true
 		}
 
-		// Label optional: only parse if non-empty
 		ls := getStr(rec, col, "Label")
 		if strings.TrimSpace(ls) != "" {
 			if v, err := atof(ls); err == nil {
