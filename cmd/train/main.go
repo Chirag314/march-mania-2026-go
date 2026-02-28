@@ -50,6 +50,7 @@ func main() {
 		pred := make([]float64, len(Xva))
 		for i := range Xva {
 			p := model.PredictProba(Xva[i])
+			p = mm.TemperatureScale(p, 2.0) // or a flag, if you want
 			p = mm.ClipProb(p, 0.02, 0.98)
 			pred[i] = p
 		}
