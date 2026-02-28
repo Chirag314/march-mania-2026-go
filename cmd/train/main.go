@@ -19,6 +19,8 @@ func main() {
 	flag.Int64Var(&seed, "seed", 42, "random seed for season assignment")
 
 	flag.StringVar(&cvMode, "cv", "loso", "cv mode: loso or groupk")
+	var minSeason int
+	flag.IntVar(&minSeason, "min_season", 1985, "minimum season to include in training/CV")
 	flag.Parse()
 
 	trainPath := filepath.Join(artDir, "features_train.csv")
@@ -26,7 +28,8 @@ func main() {
 
 	rows, err := mm.ReadMatchupsCSV(trainPath)
 	must(err)
-
+	rows = filterMinSeasonLabeled(rows, minSeason)
+	fmt.Println("Train/CV rows after min_season filter:", len(rows))
 	featureNames := []string{"DSeed", "DElo", "DWinPct", "DAvgMargin", "DAvgPF", "DAvgPA", "DMasseyOrd"}
 
 	X, y := toXY(rows)
@@ -95,4 +98,18 @@ func must(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func filterMinSeasonLabeled(rows []mm.MatchupFeatureRow, minSeason int) []mm.MatchupFeatureRow {
+	out := make([]mm.MatchupFeatureRow, 0, len(rows))
+	for _, r := range rows {
+		if !r.HasLabel {
+			continue
+		}
+		if r.Season < minSeason {
+			continue
+		}
+		out = append(out, r)
+	}
+	return out
 }

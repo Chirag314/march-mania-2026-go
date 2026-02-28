@@ -30,7 +30,6 @@ func main() {
 	must(err)
 
 	rows = filterMinSeasonLabeled(rows, minSeason)
-	fmt.Println("Train/CV rows after min_season filter:", len(rows))
 
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		panic(err)

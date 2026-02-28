@@ -3,6 +3,7 @@ package mm
 import (
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -133,6 +134,7 @@ func ReadMatchupsCSV(path string) ([]MatchupFeatureRow, error) {
 		return nil, err
 	}
 	defer f.Close()
+
 	r := csv.NewReader(f)
 	r.FieldsPerRecord = -1
 
@@ -142,16 +144,21 @@ func ReadMatchupsCSV(path string) ([]MatchupFeatureRow, error) {
 	}
 	col := indexMap(header)
 
+	// helper: check if a column exists
+	_, hasLabelCol := col["Label"]
+	_, hasHasLabelCol := col["HasLabel"]
+
 	var out []MatchupFeatureRow
 	for {
 		rec, err := r.Read()
 		if err != nil {
-			if err.Error() == "EOF" {
+			if err == io.EOF {
 				break
 			}
 			return nil, err
 		}
-		out = append(out, MatchupFeatureRow{
+
+		row := MatchupFeatureRow{
 			ID:         getStr(rec, col, "ID"),
 			Season:     mustInt(rec, col, "Season"),
 			TeamA:      mustInt(rec, col, "TeamA"),
@@ -163,9 +170,26 @@ func ReadMatchupsCSV(path string) ([]MatchupFeatureRow, error) {
 			DAvgPF:     mustFloat(rec, col, "DAvgPF"),
 			DAvgPA:     mustFloat(rec, col, "DAvgPA"),
 			DMasseyOrd: mustFloat(rec, col, "DMasseyOrd"),
-			Label:      mustFloat(rec, col, "Label"),
-			HasLabel:   strings.ToLower(getStr(rec, col, "HasLabel")) == "true",
-		})
+			Label:      0,
+			HasLabel:   false,
+		}
+
+		// HasLabel is optional / may be false in test
+		hs := strings.ToLower(getStr(rec, col, "HasLabel"))
+		if hs == "true" {
+			row.HasLabel = true
+		}
+
+		// Label optional: only parse if non-empty
+		ls := getStr(rec, col, "Label")
+		if strings.TrimSpace(ls) != "" {
+			if v, err := atof(ls); err == nil {
+				row.Label = v
+			}
+		}
+
+		out = append(out, row)
 	}
+
 	return out, nil
 }
